@@ -1,0 +1,27 @@
+{
+  "name": "ai-ecommerce-image-enhancer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Desktop web app that enhances product images using Claude, Gemini and GPT Image via Requesty.",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,magenta \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace backend && npm run build --workspace frontend",
+    "build:backend": "npm run build --workspace backend",
+    "build:frontend": "npm run build --workspace frontend",
+    "start": "npm run start --workspace backend",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
