@@ -8,7 +8,7 @@ interface UseImageEnhancer {
   status: Status;
   result: EnhanceResponse | null;
   error: string | null;
-  run: (imageDataUrl: string) => Promise<void>;
+  run: (imageDataUrl: string, productUrl?: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -19,7 +19,7 @@ export function useImageEnhancer(): UseImageEnhancer {
   const [error, setError] = useState<string | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
 
-  const run = useCallback(async (imageDataUrl: string) => {
+  const run = useCallback(async (imageDataUrl: string, productUrl = "") => {
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
@@ -29,7 +29,7 @@ export function useImageEnhancer(): UseImageEnhancer {
     setResult(null);
 
     try {
-      const response = await enhanceImage(imageDataUrl, controller.signal);
+      const response = await enhanceImage(imageDataUrl, productUrl, controller.signal);
       setResult(response);
       setStatus("success");
     } catch (err) {

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ImageCard } from "./components/ImageCard";
+import { ProductContentPanel } from "./components/ProductContentPanel";
 import { PromptPanel } from "./components/PromptPanel";
 import { UploadDropzone } from "./components/UploadDropzone";
 import { useImageEnhancer } from "./hooks/useImageEnhancer";
@@ -17,13 +18,14 @@ const PROVIDER_META: Record<
 
 export default function App() {
   const [original, setOriginal] = useState<string | null>(null);
+  const [productUrl, setProductUrl] = useState("");
   const { status, result, error, run, reset } = useImageEnhancer();
 
   const isLoading = status === "loading";
 
   const handleImageSelected = (dataUrl: string) => {
     setOriginal(dataUrl);
-    void run(dataUrl);
+    void run(dataUrl, productUrl);
   };
 
   const handleReset = () => {
@@ -48,7 +50,28 @@ export default function App() {
         </header>
 
         {!original ? (
-          <div className="mx-auto max-w-2xl">
+          <div className="mx-auto max-w-2xl space-y-6">
+            <div>
+              <label
+                htmlFor="product-url"
+                className="mb-2 block text-sm font-medium text-slate-300"
+              >
+                Product URL
+              </label>
+              <input
+                id="product-url"
+                type="url"
+                inputMode="url"
+                value={productUrl}
+                onChange={(event) => setProductUrl(event.target.value)}
+                placeholder="https://store.example.com/products/your-product"
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                Required — enter the product page URL, then upload an image below.
+              </p>
+            </div>
+
             <UploadDropzone onImageSelected={handleImageSelected} />
           </div>
         ) : (
@@ -73,6 +96,10 @@ export default function App() {
             {(isLoading || result) && (
               <PromptPanel prompt={result?.prompt ?? ""} loading={isLoading} />
             )}
+
+            {result?.productContent ? (
+              <ProductContentPanel content={result.productContent} />
+            ) : null}
 
             <div className="grid gap-6 md:grid-cols-3">
               <ImageCard

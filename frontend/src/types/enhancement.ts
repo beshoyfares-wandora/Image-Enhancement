@@ -8,9 +8,25 @@ export interface ProviderResult {
   error: string | null;
 }
 
+export interface ProductContent {
+  title: string;
+  description: string;
+  shortDescription: string;
+  bulletFeatures: string[];
+  materials: string[];
+  keySpecifications: Record<string, string>;
+  seoTitle: string;
+  seoDescription: string;
+  relatedImagePrompts: string[];
+}
+
 export interface EnhanceResponse {
   prompt: string;
   results: ProviderResult[];
+  /** Scraped product data (null if scraping/content generation failed). */
+  productInfo: unknown | null;
+  /** AI-generated marketing content (null if scraping/generation failed). */
+  productContent: ProductContent | null;
 }
 
 export interface ApiError {

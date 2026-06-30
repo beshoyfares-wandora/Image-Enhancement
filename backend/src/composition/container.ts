@@ -1,12 +1,16 @@
 import { EnhanceImageUseCase } from "../application/use-cases/EnhanceImageUseCase.js";
+import { ScrapeProductUseCase } from "../application/use-cases/ScrapeProductUseCase.js";
 import type { EnhancementProvider } from "../domain/entities/Enhancement.js";
 import type { IImageEnhancer } from "../domain/services/IImageEnhancer.js";
 import { env } from "../config/env.js";
 import { ChatImageEnhancer } from "../infrastructure/ai/ChatImageEnhancer.js";
+import { ClaudeProductContentGenerator } from "../infrastructure/ai/ClaudeProductContentGenerator.js";
 import { ClaudePromptGenerator } from "../infrastructure/ai/ClaudePromptGenerator.js";
 import { ImagesApiEnhancer } from "../infrastructure/ai/ImagesApiEnhancer.js";
 import { RequestyClient } from "../infrastructure/ai/RequestyClient.js";
+import { HtmlProductExtractor } from "../infrastructure/scraping/HtmlProductExtractor.js";
 import { EnhancementController } from "../interfaces/http/controllers/EnhancementController.js";
+import { ProductController } from "../interfaces/http/controllers/ProductController.js";
 
 /**
  * Composition root: constructs and wires every dependency in one place.
@@ -40,11 +44,29 @@ export function buildContainer() {
     createEnhancer("gpt-image", env.GPT_IMAGE_MODEL),
   ];
 
-  const enhanceImageUseCase = new EnhanceImageUseCase(promptGenerator, enhancers);
+  // Product content feature: page extraction + Claude-powered content generation.
+  const productExtractor = new HtmlProductExtractor();
+  const scrapeProductUseCase = new ScrapeProductUseCase(productExtractor);
+  const productContentGenerator = new ClaudeProductContentGenerator(
+    requestyClient,
+    env.CLAUDE_PROMPT_MODEL
+  );
+
+  const enhanceImageUseCase = new EnhanceImageUseCase(
+    promptGenerator,
+    enhancers,
+    productExtractor,
+    productContentGenerator
+  );
 
   const controllers = {
     enhancement: new EnhancementController(enhanceImageUseCase),
+    product: new ProductController(scrapeProductUseCase),
   };
 
-  return { controllers };
+  const services = {
+    productContentGenerator,
+  };
+
+  return { controllers, services };
 }
