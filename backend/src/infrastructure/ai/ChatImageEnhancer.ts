@@ -20,7 +20,11 @@ export class ChatImageEnhancer implements IImageEnhancer {
   constructor(
     public readonly provider: EnhancementProvider,
     public readonly model: string,
-    private readonly client: RequestyClient
+    private readonly client: RequestyClient,
+    // How the editing prompt is finalised before sending. Defaults to the
+    // enhancement fidelity directive; callers (e.g. marketing image generation)
+    // can pass an identity builder to send self-contained prompts verbatim.
+    private readonly buildPrompt: (prompt: string) => string = buildEditInstruction
   ) {}
 
   async enhance(original: ImageData, prompt: string): Promise<ImageData> {
@@ -33,7 +37,7 @@ export class ChatImageEnhancer implements IImageEnhancer {
           {
             role: "user",
             content: [
-              { type: "text", text: buildEditInstruction(prompt) },
+              { type: "text", text: this.buildPrompt(prompt) },
               { type: "image_url", image_url: { url: imageToDataUrl(original) } },
             ],
           },

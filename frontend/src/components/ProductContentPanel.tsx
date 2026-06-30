@@ -96,25 +96,6 @@ export function ProductContentPanel({ content }: ProductContentPanelProps) {
           <p className="text-sm text-slate-300">{content.seoDescription}</p>
         </div>
       </div>
-
-      {content.relatedImagePrompts.length > 0 ? (
-        <div>
-          <h4 className={SECTION_LABEL}>Related image prompts</h4>
-          <div className="grid gap-4 md:grid-cols-3">
-            {content.relatedImagePrompts.map((prompt, index) => (
-              <div
-                key={`${index}-${prompt.slice(0, 12)}`}
-                className="rounded-xl border border-slate-800 bg-slate-900/40 p-4"
-              >
-                <div className="mb-2 text-xs font-semibold text-indigo-400">
-                  Prompt {index + 1}
-                </div>
-                <p className="text-sm leading-relaxed text-slate-300">{prompt}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }

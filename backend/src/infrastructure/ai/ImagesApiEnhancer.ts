@@ -16,7 +16,11 @@ export class ImagesApiEnhancer implements IImageEnhancer {
   constructor(
     public readonly provider: EnhancementProvider,
     public readonly model: string,
-    private readonly client: RequestyClient
+    private readonly client: RequestyClient,
+    // How the editing prompt is finalised before sending. Defaults to the
+    // enhancement fidelity directive; callers (e.g. marketing image generation)
+    // can pass an identity builder to send self-contained prompts verbatim.
+    private readonly buildPrompt: (prompt: string) => string = buildEditInstruction
   ) {}
 
   async enhance(original: ImageData, prompt: string): Promise<ImageData> {
@@ -24,7 +28,7 @@ export class ImagesApiEnhancer implements IImageEnhancer {
     // named `image` (multipart/form-data), not a JSON image reference.
     const form = new FormData();
     form.append("model", this.model);
-    form.append("prompt", buildEditInstruction(prompt));
+    form.append("prompt", this.buildPrompt(prompt));
     // A fixed 1024 square at medium quality keeps generation fast enough to beat
     // the provider/gateway timeout (high quality + auto size frequently 504s).
     form.append("size", "1024x1024");

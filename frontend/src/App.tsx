@@ -133,7 +133,7 @@ export default function App() {
                 <h2 className="text-lg font-semibold">Marketing images</h2>
                 <div className="grid gap-6 md:grid-cols-3">
                   {isLoading
-                    ? Array.from({ length: 3 }).map((_, index) => (
+                    ? Array.from({ length: 6 }).map((_, index) => (
                         <ImageCard
                           key={`marketing-loading-${index}`}
                           title={`Marketing ${index + 1}`}

@@ -32,13 +32,17 @@ export function buildContainer() {
   // Pick the right adapter for each model:
   //  - OpenAI GPT Image / DALL-E models use the image *edits* endpoint.
   //  - Gemini (and other vision) image models return images via chat completions.
+  // An optional buildPrompt lets callers control prompt finalisation (the
+  // enhancement flow uses the default fidelity directive; marketing passes
+  // prompts through verbatim).
   const createEnhancer = (
     provider: EnhancementProvider,
-    model: string
+    model: string,
+    buildPrompt?: (prompt: string) => string
   ): IImageEnhancer =>
     /gpt-image|dall-e/i.test(model)
-      ? new ImagesApiEnhancer(provider, model, requestyClient)
-      : new ChatImageEnhancer(provider, model, requestyClient);
+      ? new ImagesApiEnhancer(provider, model, requestyClient, buildPrompt)
+      : new ChatImageEnhancer(provider, model, requestyClient, buildPrompt);
 
   const enhancers: IImageEnhancer[] = [
     createEnhancer("gemini", env.GEMINI_IMAGE_MODEL),
@@ -53,11 +57,16 @@ export function buildContainer() {
     env.CLAUDE_PROMPT_MODEL
   );
 
-  // Text-to-image marketing generator (no input image). Reuses GPT_IMAGE_MODEL.
-  const marketingImageGenerator = new MarketingImageGenerator(
+  // Marketing gallery images: EDIT the uploaded product image (reusing the same
+  // image-edits adapter as enhancement). The relatedImagePrompts are already
+  // self-contained edit instructions, so the editor sends them verbatim instead
+  // of wrapping them with the enhancement fidelity directive.
+  const marketingEditor = createEnhancer(
+    "gpt-image",
     env.GPT_IMAGE_MODEL,
-    requestyClient
+    (prompt) => prompt
   );
+  const marketingImageGenerator = new MarketingImageGenerator(marketingEditor);
 
   const enhanceImageUseCase = new EnhanceImageUseCase(
     promptGenerator,

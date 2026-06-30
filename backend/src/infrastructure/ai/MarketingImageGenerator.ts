@@ -1,62 +1,28 @@
 import type { ImageData } from "../../domain/entities/Image.js";
+import type { IImageEnhancer } from "../../domain/services/IImageEnhancer.js";
 import type { IImageGenerator } from "../../domain/services/IImageGenerator.js";
-import { UpstreamServiceError } from "../../shared/errors/AppError.js";
-import type { RequestyClient } from "./RequestyClient.js";
-import type { ImagesResponse } from "./types.js";
 
 /**
- * Generates a brand-new marketing image from a text prompt only — it never
- * receives an input image.
+ * Generates additional gallery images of the EXACT SAME uploaded product by
+ * editing the uploaded image, rather than generating a brand-new product from
+ * text (which previously redesigned the product).
  *
- * Unlike ChatImageEnhancer (which uses /chat/completions and fails for
- * image-only models like azure/openai/gpt-image-2 with "Provider and/or model
- * not supported"), this uses the OpenAI Images *generations* endpoint
- * (`/images/generations`). It mirrors ImagesApiEnhancer's request/response
- * style — the difference is simply that generation takes no input `image` file,
- * so a plain JSON body is sent instead of multipart form-data. The generated
- * image is read back from the `data[]` array and returned as {@link ImageData}.
+ * It is a thin wrapper over an existing {@link IImageEnhancer} adapter
+ * (e.g. ImagesApiEnhancer via the OpenAI image *edits* endpoint), so all the
+ * image-editing infrastructure — uploading the source image, calling the
+ * provider, decoding the result — is reused with no duplication. The injected
+ * editor is configured to pass each marketing prompt through verbatim (the
+ * relatedImagePrompts already carry full "edit this exact product" instructions).
  */
 export class MarketingImageGenerator implements IImageGenerator {
-  constructor(
-    public readonly model: string,
-    private readonly client: RequestyClient
-  ) {}
+  constructor(private readonly editor: IImageEnhancer) {}
 
-  async generate(prompt: string): Promise<ImageData> {
-    const response = await this.client.post<ImagesResponse>(
-      "/images/generations",
-      {
-        model: this.model,
-        prompt,
-        // A fixed 1024 square at medium quality keeps generation fast enough to
-        // beat the provider/gateway timeout (high quality + auto size 504s).
-        size: "1024x1024",
-        quality: "medium",
-      }
-    );
-
-    // Same response handling as ImagesApiEnhancer: prefer inline base64, else
-    // download a remote URL.
-    const result = response.data?.[0];
-    if (result?.b64_json) {
-      return { base64: result.b64_json, mimeType: "image/png" };
-    }
-    if (result?.url) {
-      return this.fetchRemoteImage(result.url);
-    }
-
-    throw new UpstreamServiceError("Marketing image generator did not return an image.");
+  get model(): string {
+    return this.editor.model;
   }
 
-  private async fetchRemoteImage(url: string): Promise<ImageData> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new UpstreamServiceError(
-        `Failed to download generated image (status ${response.status}).`
-      );
-    }
-    const mimeType = response.headers.get("content-type") ?? "image/png";
-    const buffer = Buffer.from(await response.arrayBuffer());
-    return { base64: buffer.toString("base64"), mimeType };
+  /** Edits the uploaded product image according to the marketing prompt. */
+  generate(original: ImageData, prompt: string): Promise<ImageData> {
+    return this.editor.enhance(original, prompt);
   }
 }

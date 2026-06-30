@@ -157,27 +157,55 @@ Keep under 40 words.
 - "seoDescription": <= 160 characters.
 "relatedImagePrompts":
 
-Generate exactly three prompts.
+Generate exactly six image-EDITING prompts for an AI image editing model.
+These are NOT generic text-to-image prompts — each prompt edits the uploaded
+product image to produce an ADDITIONAL ecommerce gallery photo of the SAME
+physical product (a different shot, like a real photo shoot of one item).
 
-Prompt 1:
-Premium studio hero image.
+Every prompt MUST:
+- Start with the exact phrase: "Edit the uploaded product image."
+- State that the uploaded image is the source of truth for the product's design,
+  and that it shows the same physical product in a new photograph.
+- Specify all four of: (1) camera angle, (2) shot distance/crop, (3) composition
+  or arrangement, and (4) background / setting / props.
 
-Prompt 2:
-Lifestyle scene appropriate for the target customer.
-
-Prompt 3:
-Close-up image emphasizing craftsmanship, texture or premium quality.
-
-Each prompt must preserve:
-
-- branding
-- logo
+PRESERVE the product's IDENTITY in every prompt (these must NEVER change):
+- logo and its placement
+- printed text, fonts and label artwork
 - colors
-- proportions
-- packaging
-- labels
+- embroidery and decorative elements
+- branding
+- materials and texture / finish
+- the product's relative proportions
 
-Never redesign the product.
+You MAY change the PRESENTATION to create variety (these SHOULD differ per shot):
+- camera angle (front, three-quarter, side, back, top-down)
+- shot distance and crop (full product, close-up, macro detail)
+- arrangement (worn / in-use, folded / flat-lay, hung, standing, grouped)
+- background, environment and props
+- lighting and mood
+
+DIVERSITY RULES (critical):
+- The six prompts MUST each use a DIFFERENT camera angle AND a DIFFERENT
+  composition. Never output prompts that differ only by background.
+- Never repeat the same pose or framing across the six prompts.
+
+CATEGORY AWARENESS:
+- Only choose shot types that physically make sense for this product. Apparel and
+  textiles can be worn, folded, hung or flat-laid; rigid items (bottles, mugs,
+  electronics) should instead use top-down, label close-up, grouped or in-hand
+  shots. Pick the six most useful, clearly distinct shots for THIS product.
+
+Choose the six most relevant, clearly different shots from this menu:
+front view, three-quarter / side angle, back view, close-up detail of the
+logo / embroidery, texture / material macro, folded flat-lay, hanging, lifestyle
+in-use, or packaging shot. Prefer a spread across full-product, detail and
+context rather than repetitive similar views.
+
+Never redesign, recreate, replace, restyle or recolor the product, and never
+invent brand names, text or logos that are not already on it. The product's
+design must remain identical — only the angle, framing, arrangement and setting
+change.
 FINAL VALIDATION
 
 Before responding, verify:

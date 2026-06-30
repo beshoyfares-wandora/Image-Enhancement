@@ -13,6 +13,11 @@ import type { IProductExtractor } from "../../domain/services/IProductExtractor.
 import type { IPromptGenerator } from "../../domain/services/IPromptGenerator.js";
 import { logger } from "../../shared/logger.js";
 
+// Max marketing image edits to run at once. Image-edit calls are slow/expensive
+// and the provider gateway times out (504) under too much concurrency, so we cap
+// the fan-out instead of firing every prompt simultaneously.
+const MARKETING_CONCURRENCY = 2;
+
 /**
  * Core business flow:
  *   1. Scrape the product URL into ProductInfo, generate marketing content
@@ -71,28 +76,48 @@ export class EnhanceImageUseCase {
     );
 
     const marketingImages = productContent
-      ? await this.generateMarketingImages(productContent.relatedImagePrompts)
+      ? await this.generateMarketingImages(original, productContent.relatedImagePrompts)
       : [];
 
     return { productInfo, productContent, marketingImages };
   }
 
   /**
-   * Generates one marketing image per prompt in parallel. Individual failures
-   * are isolated so a single bad prompt never blocks the rest.
+   * Generates one marketing image per prompt by editing the uploaded product
+   * image, with bounded concurrency. Individual failures are isolated so a single
+   * bad prompt never blocks the rest, and result order matches the prompt order.
    */
   private async generateMarketingImages(
+    original: ImageData,
     prompts: string[]
   ): Promise<MarketingImageResult[]> {
     if (prompts.length === 0) return [];
 
-    logger.info("Generating marketing images", { count: prompts.length });
-    return Promise.all(prompts.map((prompt) => this.generateMarketingImage(prompt)));
+    logger.info("Generating marketing images", {
+      count: prompts.length,
+      concurrency: MARKETING_CONCURRENCY,
+    });
+
+    const results = new Array<MarketingImageResult>(prompts.length);
+    let cursor = 0;
+    const worker = async (): Promise<void> => {
+      while (cursor < prompts.length) {
+        const index = cursor++;
+        results[index] = await this.generateMarketingImage(original, prompts[index]);
+      }
+    };
+
+    const workerCount = Math.min(MARKETING_CONCURRENCY, prompts.length);
+    await Promise.all(Array.from({ length: workerCount }, () => worker()));
+    return results;
   }
 
-  private async generateMarketingImage(prompt: string): Promise<MarketingImageResult> {
+  private async generateMarketingImage(
+    original: ImageData,
+    prompt: string
+  ): Promise<MarketingImageResult> {
     try {
-      const image = await this.marketingImageGenerator.generate(prompt);
+      const image = await this.marketingImageGenerator.generate(original, prompt);
       return { prompt, image, error: null };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
