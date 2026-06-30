@@ -127,6 +127,35 @@ export default function App() {
                 );
               })}
             </div>
+
+            {(isLoading || (result?.marketingImages?.length ?? 0) > 0) && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Marketing images</h2>
+                <div className="grid gap-6 md:grid-cols-3">
+                  {isLoading
+                    ? Array.from({ length: 3 }).map((_, index) => (
+                        <ImageCard
+                          key={`marketing-loading-${index}`}
+                          title={`Marketing ${index + 1}`}
+                          image={null}
+                          loading
+                          accent="indigo"
+                        />
+                      ))
+                    : result?.marketingImages.map((marketing, index) => (
+                        <ImageCard
+                          key={`marketing-${index}`}
+                          title={`Marketing ${index + 1}`}
+                          subtitle={marketing.prompt}
+                          image={marketing.image}
+                          error={marketing.error}
+                          downloadName={`marketing-${index + 1}.png`}
+                          accent="indigo"
+                        />
+                      ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -49,5 +49,10 @@ function toResponse(outcome: EnhancementOutcome) {
     })),
     productInfo: outcome.productInfo,
     productContent: outcome.productContent,
+    marketingImages: outcome.marketingImages.map((generated) => ({
+      prompt: generated.prompt,
+      image: generated.image ? imageToDataUrl(generated.image) : null,
+      error: generated.error,
+    })),
   };
 }

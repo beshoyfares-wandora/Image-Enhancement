@@ -1,8 +1,13 @@
-import type { EnhancementOutcome, ProviderResult } from "../../domain/entities/Enhancement.js";
+import type {
+  EnhancementOutcome,
+  MarketingImageResult,
+  ProviderResult,
+} from "../../domain/entities/Enhancement.js";
 import type { ImageData } from "../../domain/entities/Image.js";
 import type { ProductContent } from "../../domain/entities/ProductContent.js";
 import type { ProductInfo } from "../../domain/entities/ProductInfo.js";
 import type { IImageEnhancer } from "../../domain/services/IImageEnhancer.js";
+import type { IImageGenerator } from "../../domain/services/IImageGenerator.js";
 import type { IProductContentGenerator } from "../../domain/services/IProductContentGenerator.js";
 import type { IProductExtractor } from "../../domain/services/IProductExtractor.js";
 import type { IPromptGenerator } from "../../domain/services/IPromptGenerator.js";
@@ -10,27 +15,32 @@ import { logger } from "../../shared/logger.js";
 
 /**
  * Core business flow:
- *   1. Scrape the product URL into ProductInfo and generate marketing content
- *      (Claude) from the scraped data + the uploaded image.
+ *   1. Scrape the product URL into ProductInfo, generate marketing content
+ *      (Claude) from the scraped data + the uploaded image, then generate a
+ *      marketing image for each of the content's related image prompts.
  *   2. In parallel, run the image enhancement flow: Claude writes an editing
  *      prompt, then every enhancer produces an image.
- *   3. Return both the product content and the enhancements. Content generation
- *      is tolerant — a scraping/AI failure never blocks the enhancements.
+ *   3. Return the product content, the generated marketing images and the
+ *      enhancements. Content/marketing generation is tolerant — a scraping/AI
+ *      failure never blocks the enhancements, and one failed marketing image
+ *      never blocks the others.
  */
 export class EnhanceImageUseCase {
   constructor(
     private readonly promptGenerator: IPromptGenerator,
     private readonly enhancers: IImageEnhancer[],
     private readonly productExtractor: IProductExtractor,
-    private readonly productContentGenerator: IProductContentGenerator
+    private readonly productContentGenerator: IProductContentGenerator,
+    private readonly marketingImageGenerator: IImageGenerator
   ) {}
 
   async execute(original: ImageData, url: string): Promise<EnhancementOutcome> {
     logger.info("Starting enhancement", { url });
 
-    // Product content (scrape + generate) and image enhancement run in parallel.
+    // Product content (scrape + generate + marketing images) and image
+    // enhancement run in parallel.
     const [content, enhancements] = await Promise.all([
-      this.generateProductContent(original, url),
+      this.generateContent(original, url),
       this.runEnhancements(original),
     ]);
 
@@ -39,7 +49,56 @@ export class EnhanceImageUseCase {
       results: enhancements.results,
       productInfo: content.productInfo,
       productContent: content.productContent,
+      marketingImages: content.marketingImages,
     };
+  }
+
+  /**
+   * Generates the product content and then, from its related image prompts, the
+   * marketing images. Marketing images are only attempted when content exists.
+   */
+  private async generateContent(
+    original: ImageData,
+    url: string
+  ): Promise<{
+    productInfo: ProductInfo | null;
+    productContent: ProductContent | null;
+    marketingImages: MarketingImageResult[];
+  }> {
+    const { productInfo, productContent } = await this.generateProductContent(
+      original,
+      url
+    );
+
+    const marketingImages = productContent
+      ? await this.generateMarketingImages(productContent.relatedImagePrompts)
+      : [];
+
+    return { productInfo, productContent, marketingImages };
+  }
+
+  /**
+   * Generates one marketing image per prompt in parallel. Individual failures
+   * are isolated so a single bad prompt never blocks the rest.
+   */
+  private async generateMarketingImages(
+    prompts: string[]
+  ): Promise<MarketingImageResult[]> {
+    if (prompts.length === 0) return [];
+
+    logger.info("Generating marketing images", { count: prompts.length });
+    return Promise.all(prompts.map((prompt) => this.generateMarketingImage(prompt)));
+  }
+
+  private async generateMarketingImage(prompt: string): Promise<MarketingImageResult> {
+    try {
+      const image = await this.marketingImageGenerator.generate(prompt);
+      return { prompt, image, error: null };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      logger.error("Marketing image generation failed", message);
+      return { prompt, image: null, error: message };
+    }
   }
 
   /** Existing image enhancement flow — unchanged. */

@@ -13,6 +13,16 @@ export interface ProviderResult {
   readonly error: string | null;
 }
 
+/**
+ * A marketing image generated from one of the product content's related image
+ * prompts. `image` is null when that individual generation failed.
+ */
+export interface MarketingImageResult {
+  readonly prompt: string;
+  readonly image: ImageData | null;
+  readonly error: string | null;
+}
+
 /** The full outcome of enhancing one uploaded image. */
 export interface EnhancementOutcome {
   readonly prompt: string;
@@ -21,4 +31,6 @@ export interface EnhancementOutcome {
   readonly productInfo: ProductInfo | null;
   /** AI-generated marketing content (null if scraping/generation failed). */
   readonly productContent: ProductContent | null;
+  /** Marketing images generated from productContent.relatedImagePrompts. */
+  readonly marketingImages: MarketingImageResult[];
 }

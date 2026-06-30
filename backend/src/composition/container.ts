@@ -7,6 +7,7 @@ import { ChatImageEnhancer } from "../infrastructure/ai/ChatImageEnhancer.js";
 import { ClaudeProductContentGenerator } from "../infrastructure/ai/ClaudeProductContentGenerator.js";
 import { ClaudePromptGenerator } from "../infrastructure/ai/ClaudePromptGenerator.js";
 import { ImagesApiEnhancer } from "../infrastructure/ai/ImagesApiEnhancer.js";
+import { MarketingImageGenerator } from "../infrastructure/ai/MarketingImageGenerator.js";
 import { RequestyClient } from "../infrastructure/ai/RequestyClient.js";
 import { HtmlProductExtractor } from "../infrastructure/scraping/HtmlProductExtractor.js";
 import { EnhancementController } from "../interfaces/http/controllers/EnhancementController.js";
@@ -52,11 +53,18 @@ export function buildContainer() {
     env.CLAUDE_PROMPT_MODEL
   );
 
+  // Text-to-image marketing generator (no input image). Reuses GPT_IMAGE_MODEL.
+  const marketingImageGenerator = new MarketingImageGenerator(
+    env.GPT_IMAGE_MODEL,
+    requestyClient
+  );
+
   const enhanceImageUseCase = new EnhanceImageUseCase(
     promptGenerator,
     enhancers,
     productExtractor,
-    productContentGenerator
+    productContentGenerator,
+    marketingImageGenerator
   );
 
   const controllers = {
@@ -66,6 +74,7 @@ export function buildContainer() {
 
   const services = {
     productContentGenerator,
+    marketingImageGenerator,
   };
 
   return { controllers, services };

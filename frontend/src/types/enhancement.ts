@@ -20,6 +20,13 @@ export interface ProductContent {
   relatedImagePrompts: string[];
 }
 
+export interface MarketingImage {
+  prompt: string;
+  /** Generated image as a base64 data URL, or null if generation failed. */
+  image: string | null;
+  error: string | null;
+}
+
 export interface EnhanceResponse {
   prompt: string;
   results: ProviderResult[];
@@ -27,6 +34,8 @@ export interface EnhanceResponse {
   productInfo: unknown | null;
   /** AI-generated marketing content (null if scraping/generation failed). */
   productContent: ProductContent | null;
+  /** Marketing images generated from productContent.relatedImagePrompts. */
+  marketingImages: MarketingImage[];
 }
 
 export interface ApiError {
